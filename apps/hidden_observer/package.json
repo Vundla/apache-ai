@@ -1,0 +1,15 @@
+{
+    "name": "hidden_observer",
+    "version": "0.1.0",
+    "private": true,
+    "description": "Offline-first hidden observer with encrypted local storage and selective replication",
+    "main": "src/index.js",
+    "scripts": {
+        "start": "node src/index.js"
+    },
+    "dependencies": {
+        "dotenv": "^16.4.5",
+        "pouchdb": "^9.0.0",
+        "pouchdb-adapter-leveldb": "^9.0.0"
+    }
+}

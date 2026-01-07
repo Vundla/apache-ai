@@ -1,0 +1,30 @@
+# Dependencies
+node_modules/
+_build/
+.rebar3/
+
+# Environment and Secrets
+.env
+config/cockroach/certs/
+config/tls/
+config/cassandra/keystore.jks
+config/cassandra/truststore.jks
+.pki/
+
+# Logs and Crash Dumps
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+erl_crash.dump
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Editor directories
+.idea/
+.vscode/
+*.swp
+config/cassandra/jks/
+apps/hidden_observer/rocket_engine_local/

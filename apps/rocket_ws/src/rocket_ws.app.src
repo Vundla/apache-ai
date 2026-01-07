@@ -1,0 +1,18 @@
+{application, rocket_ws,
+  [
+    {description, "Rocket AI WebSocket server"},
+    {vsn, "0.1.0"},
+    {modules, [rocket_ws_app, rocket_ws_sup, rocket_ws_handler, rocket_ws_http_handler]},
+    {registered, []},
+    {applications, [kernel, stdlib, cowboy, ranch]},
+    {mod, {rocket_ws_app, []}},
+    {env, [{port, 8080}]}
+  ]}.
+{application, rocket_ws,
+ [{description, "Rocket WebSocket Live Telemetry"},
+  {vsn, "0.1.0"},
+  {registered, [rocket_ws_sup]},
+  {mod, {rocket_ws_app, []}},
+  {applications, [kernel, stdlib, cowboy, ranch, cowlib]},
+  {env, []}
+ ]}.

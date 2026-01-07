@@ -1,0 +1,11 @@
+-hidden
+-setcookie rocket_ai_cookie
+-kernel inet_dist_listen_min 9100
+-kernel inet_dist_listen_max 9105
+-hidden
+-setcookie rocket_cookie
+-sname rocket_ai@127.0.0.1
+
+# Optional: restrict distribution port range if needed
+# -kernel inet_dist_listen_min 9100
+# -kernel inet_dist_listen_max 9100

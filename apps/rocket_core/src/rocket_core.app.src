@@ -1,0 +1,18 @@
+{application, rocket_core,
+  [
+    {description, "Rocket AI core"},
+    {vsn, "0.1.0"},
+    {modules, [rocket_core_app, rocket_core_sup, rocket_core_telemetry]},
+    {registered, []},
+    {applications, [kernel, stdlib]},
+    {mod, {rocket_core_app, []}},
+    {env, []}
+  ]}.
+{application, rocket_core,
+ [{description, "Rocket Core Telemetry Generator"},
+  {vsn, "0.1.0"},
+  {registered, [rocket_core_sup]},
+  {mod, {rocket_core_app, []}},
+  {applications, [kernel, stdlib]},
+  {env, []}
+ ]}.

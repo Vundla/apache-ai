@@ -1,0 +1,152 @@
+version: '3.9'
+
+services:
+  cockroach:
+    image: cockroachdb/cockroach:v24.3.1
+    command: start-single-node --certs-dir=/certs --advertise-addr=localhost
+    ports:
+      - "26257:26257"
+      - "8080:8080"
+    volumes:
+      - cockroach-data:/cockroach/cockroach-data
+      - ./config/cockroach/certs:/certs:ro
+    environment:
+      - COCKROACH_CHANNEL=official-docker
+
+  cassandra:
+    image: cassandra:4.1
+    environment:
+      - CASSANDRA_CLUSTER_NAME=RocketAI
+      - JVM_OPTS=-Xms512m -Xmx512m
+    ports:
+      - "9042:9042"
+    volumes:
+      - cassandra-data:/var/lib/cassandra
+      - ./config/cassandra/cassandra.full.yaml:/etc/cassandra/cassandra.yaml
+      - ./config/cassandra/jks:/certs/jks:ro
+
+  postgres:
+    image: postgres:15
+    environment:
+      - POSTGRES_DB=rocket_ai
+      - POSTGRES_USER=rocket
+      - POSTGRES_PASSWORD=rocketpass
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./config/postgres/postgresql.conf:/etc/postgresql/postgresql.conf:ro
+      - ./config/postgres/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
+      - ./config/tls:/certs:ro
+    command: ["postgres", "-c", "config_file=/etc/postgresql/postgresql.conf", "-c", "hba_file=/etc/postgresql/pg_hba.conf"]
+
+  couchdb:
+    image: couchdb:3.3
+    environment:
+      - COUCHDB_USER=admin
+      - COUCHDB_PASSWORD=adminpass
+    ports:
+      - "5984:5984"
+    volumes:
+      - couchdb-data:/opt/couchdb/data
+      - ./config/couchdb/local.ini:/opt/couchdb/etc/local.ini:ro
+      - ./config/tls:/certs:ro
+
+  zookeeper-1:
+    image: confluentinc/cp-zookeeper:7.7.0
+    hostname: zookeeper-1
+    environment:
+      - ZOOKEEPER_SERVER_ID=1
+      - ZOOKEEPER_CLIENT_PORT=2181
+      - ZOOKEEPER_TICK_TIME=2000
+      - ZOOKEEPER_INIT_LIMIT=10
+      - ZOOKEEPER_SYNC_LIMIT=5
+      - ZOOKEEPER_SERVERS=zookeeper-1:2888:3888;zookeeper-2:2888:3888;zookeeper-3:2888:3888
+    ports:
+      - "2181:2181"
+    volumes:
+      - zookeeper-1-data:/var/lib/zookeeper/data
+      - zookeeper-1-log:/var/lib/zookeeper/log
+
+  zookeeper-2:
+    image: confluentinc/cp-zookeeper:7.7.0
+    hostname: zookeeper-2
+    environment:
+      - ZOOKEEPER_SERVER_ID=2
+      - ZOOKEEPER_CLIENT_PORT=2181
+      - ZOOKEEPER_TICK_TIME=2000
+      - ZOOKEEPER_INIT_LIMIT=10
+      - ZOOKEEPER_SYNC_LIMIT=5
+      - ZOOKEEPER_SERVERS=zookeeper-1:2888:3888;zookeeper-2:2888:3888;zookeeper-3:2888:3888
+    volumes:
+      - zookeeper-2-data:/var/lib/zookeeper/data
+      - zookeeper-2-log:/var/lib/zookeeper/log
+
+  zookeeper-3:
+    image: confluentinc/cp-zookeeper:7.7.0
+    hostname: zookeeper-3
+    environment:
+      - ZOOKEEPER_SERVER_ID=3
+      - ZOOKEEPER_CLIENT_PORT=2181
+      - ZOOKEEPER_TICK_TIME=2000
+      - ZOOKEEPER_INIT_LIMIT=10
+      - ZOOKEEPER_SYNC_LIMIT=5
+      - ZOOKEEPER_SERVERS=zookeeper-1:2888:3888;zookeeper-2:2888:3888;zookeeper-3:2888:3888
+    volumes:
+      - zookeeper-3-data:/var/lib/zookeeper/data
+      - zookeeper-3-log:/var/lib/zookeeper/log
+
+  kafka:
+    image: confluentinc/cp-kafka:7.7.0
+    hostname: kafka
+    depends_on:
+      zookeeper-1:
+        condition: service_started
+      zookeeper-2:
+        condition: service_started
+      zookeeper-3:
+        condition: service_started
+    ports:
+      - "9093:9093"
+    environment:
+      - KAFKA_BROKER_ID=1
+      - KAFKA_ZOOKEEPER_CONNECT=zookeeper-1:2181,zookeeper-2:2181,zookeeper-3:2181
+      - KAFKA_LISTENERS=SSL://0.0.0.0:9093
+      - KAFKA_ADVERTISED_LISTENERS=SSL://kafka:9093
+      - KAFKA_INTER_BROKER_LISTENER_NAME=SSL
+      - KAFKA_SSL_KEYSTORE_LOCATION=/certs/kafka.keystore.jks
+      - KAFKA_SSL_KEYSTORE_PASSWORD=changeit
+      - KAFKA_SSL_KEY_PASSWORD=changeit
+      - KAFKA_SSL_TRUSTSTORE_LOCATION=/certs/kafka.truststore.jks
+      - KAFKA_SSL_TRUSTSTORE_PASSWORD=changeit
+      - KAFKA_SSL_CLIENT_AUTH=required
+      - KAFKA_SSL_ENABLED_PROTOCOLS=TLSv1.3
+      - KAFKA_SASL_ENABLED_MECHANISMS=SCRAM-SHA-512
+      - KAFKA_SASL_MECHANISM_INTER_BROKER_PROTOCOL=SCRAM-SHA-512
+      - KAFKA_AUTHORIZER_CLASS_NAME=kafka.security.authorizer.AclAuthorizer
+      - KAFKA_SUPER_USERS=User:admin;User:rocket-engine-sim
+      - KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1
+      - KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR=1
+      - KAFKA_TRANSACTION_STATE_LOG_MIN_ISR=1
+      - KAFKA_DEFAULT_REPLICATION_FACTOR=1
+      - KAFKA_MIN_INSYNC_REPLICAS=1
+      - KAFKA_DELETE_TOPIC_ENABLE=true
+      - KAFKA_AUTO_CREATE_TOPICS_ENABLE=false
+      - KAFKA_HEAP_OPTS=-Xmx768m -Xms768m
+      - KAFKA_ENABLE_KRAFT=no
+    volumes:
+      - kafka-data:/var/lib/kafka/data
+      - ./config/tls:/certs:ro
+
+volumes:
+  cockroach-data:
+  cassandra-data:
+  postgres-data:
+  couchdb-data:
+  zookeeper-1-data:
+  zookeeper-1-log:
+  zookeeper-2-data:
+  zookeeper-2-log:
+  zookeeper-3-data:
+  zookeeper-3-log:
+  kafka-data:

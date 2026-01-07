@@ -1,0 +1,15 @@
+{
+    "name": "change_feed_listener",
+    "version": "0.1.0",
+    "private": true,
+    "description": "CouchDB _changes listener with optional Kafka publish (TLS/SCRAM)",
+    "main": "src/index.js",
+    "scripts": {
+        "start": "node src/index.js"
+    },
+    "dependencies": {
+        "axios": "^1.7.7",
+        "dotenv": "^16.4.5",
+        "kafkajs": "^2.2.4"
+    }
+}
