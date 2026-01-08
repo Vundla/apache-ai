@@ -13,22 +13,33 @@ const crypto = require('crypto');
 const LOCAL_DB_NAME = process.env.LOCAL_DB_NAME || 'rocket_engine_local';
 const COUCH_REMOTE_DB = process.env.COUCH_REMOTE_DB || 'rocket_engine';
 const COUCHDB_URL = process.env.COUCHDB_URL || 'http://admin:adminpass@localhost:5984';
-const ENCRYPTION_KEY_HEX = process.env.ENCRYPTION_KEY_HEX;
+const NODE_ENV = process.env.NODE_ENV || 'development';
+let encryptionKeyHex = process.env.ENCRYPTION_KEY_HEX;
 const REPLICATION_ENABLED = String(process.env.REPLICATION_ENABLED || 'true') === 'true';
 const REPLICATION_INTERVAL_MS = Number(process.env.REPLICATION_INTERVAL_MS || 60000);
 const REPLICATION_JITTER_MS = Number(process.env.REPLICATION_JITTER_MS || 10000);
 
-if (!ENCRYPTION_KEY_HEX || ENCRYPTION_KEY_HEX.length !== 64) {
-    console.error('[observer] ENCRYPTION_KEY_HEX missing or invalid length (expected 32 bytes hex)');
+function isValidKeyHex(value) {
+    return typeof value === 'string' && /^[0-9a-fA-F]{64}$/.test(value);
 }
+
+if (!isValidKeyHex(encryptionKeyHex)) {
+    if (NODE_ENV === 'production') {
+        console.error('[observer] ENCRYPTION_KEY_HEX missing or invalid (expected 32-byte hex string)');
+        process.exit(1);
+    }
+    encryptionKeyHex = crypto.randomBytes(32).toString('hex');
+    console.warn('[observer] ENCRYPTION_KEY_HEX missing; generated ephemeral key for non-production run');
+}
+
+const ENCRYPTION_KEY = Buffer.from(encryptionKeyHex, 'hex');
 
 const local = new PouchDB(LOCAL_DB_NAME, { adapter: 'leveldb' });
 const remote = new PouchDB(`${COUCHDB_URL.replace(/\/$/, '')}/${COUCH_REMOTE_DB}`);
 
 function encryptJSON(obj) {
     const iv = crypto.randomBytes(12); // GCM 96-bit IV
-    const key = Buffer.from(ENCRYPTION_KEY_HEX, 'hex');
-    const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
+    const cipher = crypto.createCipheriv('aes-256-gcm', ENCRYPTION_KEY, iv);
     const ciphertext = Buffer.concat([cipher.update(JSON.stringify(obj), 'utf8'), cipher.final()]);
     const tag = cipher.getAuthTag();
     return { iv: iv.toString('base64'), tag: tag.toString('base64'), data: ciphertext.toString('base64') };
@@ -99,7 +110,7 @@ async function main() {
     scheduleReplication();
 }
 
-main().catch((e) => {
-    console.error('[observer] fatal:', e);
+main().catch((err) => {
+    console.error('[observer] startup failed:', err);
     process.exit(1);
 });

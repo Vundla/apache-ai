@@ -2,6 +2,7 @@
 node_modules/
 _build/
 .rebar3/
+.next/
 
 # Environment and Secrets
 .env
